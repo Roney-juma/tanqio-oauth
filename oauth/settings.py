@@ -36,15 +36,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Allow auto-generation ONLY when DEBUG=True so container can start locally / on first deploy.
+# Strategy:
+#   - Use provided SECRET_KEY if set.
+#   - If missing and DEBUG=True OR we are running a build command that includes 'collectstatic', generate an ephemeral key
+#     so buildpack/container build (which runs collectstatic) does not fail.
+#   - Otherwise (runtime, production) raise.
 SECRET_KEY = config('SECRET_KEY', default='')
 if not SECRET_KEY:
-    if DEBUG:
+    running_collectstatic = any('collectstatic' in arg for arg in sys.argv)
+    if DEBUG or running_collectstatic:
         try:
             from django.core.management.utils import get_random_secret_key
             SECRET_KEY = get_random_secret_key()
-            # Log a warning so operators know a transient key was generated (sessions will reset on restart).
-            logging.warning('Generated ephemeral SECRET_KEY because DEBUG=True and none was provided.')
+            context = 'DEBUG' if DEBUG else 'collectstatic build phase'
+            logging.warning('Generated ephemeral SECRET_KEY during %s; set SECRET_KEY env for production runtime.' % context)
         except Exception as e:
             raise RuntimeError('Failed to generate SECRET_KEY automatically: %s' % e)
     else:
