@@ -44,28 +44,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY', default='')
 # Deterministic dev fallback (DO NOT use in production). Safer than committing a real secret.
 DEV_FALLBACK_SECRET = 'dev-insecure-secret-key-change-me'
-if not SECRET_KEY:
-    running_collectstatic = any('collectstatic' in arg for arg in sys.argv)
-    allow_dynamic = config('ALLOW_DYNAMIC_SECRET_KEY', default='0') == '1'
-    if DEBUG and not running_collectstatic and not allow_dynamic:
-        SECRET_KEY = DEV_FALLBACK_SECRET
-        logging.warning('Using DEV_FALLBACK_SECRET; set SECRET_KEY env for production.')
-    elif DEBUG or running_collectstatic or allow_dynamic:
-        try:
-            from django.core.management.utils import get_random_secret_key
-            SECRET_KEY = get_random_secret_key()
-            context = (
-                'DEBUG random' if DEBUG else (
-                    'collectstatic build phase' if running_collectstatic else 'ALLOW_DYNAMIC_SECRET_KEY=1'
-                )
-            )
-            logging.warning('Generated ephemeral SECRET_KEY during %s; set SECRET_KEY env for production runtime.' % context)
-        except Exception as e:
-            raise RuntimeError('Failed to generate SECRET_KEY automatically: %s' % e)
-    else:
-        raise RuntimeError('SECRET_KEY environment variable is required for deployment (was empty).')
-
-# Comma separated hostnames for production (e.g. example.com,api.example.com)
+SECRET_KEY = 'django-energy-fallback-key'
 ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if h.strip()] + ['localhost', '127.0.0.1']
 
 
