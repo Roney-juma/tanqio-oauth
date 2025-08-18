@@ -47,6 +47,14 @@ DEV_FALLBACK_SECRET = 'dev-insecure-secret-key-change-me'
 SECRET_KEY = 'django-energy-fallback-key'
 ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if h.strip()] + ['localhost', '127.0.0.1']
 
+# Render.com supplies an external hostname we can auto-allow if present to avoid DisallowedHost errors.
+RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME') or os.environ.get('RENDER_EXTERNAL_URL', '').replace('https://', '').replace('http://', '')
+if RENDER_HOST:
+    host_clean = RENDER_HOST.strip('/ ')
+    if host_clean and host_clean not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host_clean)
+
+
 
 # Application definition
 
