@@ -1,0 +1,68 @@
+env/
+############################
+# Python build artifacts
+############################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+############################
+# Env & virtualenvs
+############################
+env/
+venv/
+.venv/
+.env
+.env.*
+
+############################
+# Databases (use Postgres in containers)
+############################
+*.sqlite3
+*.db
+db.sqlite3
+
+############################
+# Logs & coverage
+############################
+*.log
+logs/
+.coverage
+htmlcov/
+pytestdebug.log
+
+############################
+# Static / media (collected or user uploaded)
+############################
+staticfiles/
+media/
+
+############################
+# Node / frontend
+############################
+node_modules/
+dist/
+build/
+
+############################
+# VCS & IDE
+############################
+.git
+.gitignore
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+############################
+# Tests (optional to exclude from image build context)
+############################
+tests/
+
+############################
+# Misc
+############################
+docker-compose.override.yml
+*.tmp

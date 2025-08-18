@@ -1,0 +1,159 @@
+{% extends 'tanqio/base.html' %}
+
+{% block title %}Profile - OAuth Demo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card card-custom">
+            <div class="card-body p-4">
+                <h3 class="card-title">
+                    <i class="fas fa-user text-primary"></i>
+                    User Profile
+                </h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Username:</strong></td>
+                                <td>{{ user.username }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ user.email|default:"Not provided" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>First Name:</strong></td>
+                                <td>{{ user.first_name|default:"Not provided" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Last Name:</strong></td>
+                                <td>{{ user.last_name|default:"Not provided" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date Joined:</strong></td>
+                                <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        {% if social_auth %}
+                            <h6><i class="fas fa-link text-success"></i> Connected Account</h6>
+                            <div class="alert alert-info">
+                                <strong>Provider:</strong> {{ provider_display|default:social_auth.provider|title }}<br>
+                                <strong>UID:</strong> {{ social_auth.uid }}<br>
+                                {% if extra_data.avatar_url %}
+                                    <img src="{{ extra_data.avatar_url }}" alt="Avatar" class="rounded-circle mt-2" width="50" height="50">
+                                {% elif extra_data.picture %}
+                                    <img src="{{ extra_data.picture }}" alt="Avatar" class="rounded-circle mt-2" width="50" height="50">
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No social accounts connected
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-key text-warning"></i> OAuth Tokens
+                </h5>
+                <p class="card-text small">
+                    Manage your OAuth applications and tokens in the admin panel.
+                </p>
+                <a href="/admin/oauth2_provider/" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-cog"></i> Manage OAuth Apps
+                </a>
+            </div>
+        </div>
+        
+        <div class="card card-custom mt-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-sign-out-alt text-danger"></i> Logout Options
+                </h5>
+                <p class="card-text small">
+                    Choose how you want to logout from the application.
+                </p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'tanqio:logout' %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-sign-out-alt"></i> Logout (with provider logout option)
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card card-custom mt-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-code text-info"></i> API Testing
+                </h5>
+                <p class="card-text small">
+                    Test the protected API endpoints with your OAuth token.
+                </p>
+                <button class="btn btn-outline-info btn-sm w-100" onclick="testProtectedAPI()">
+                    <i class="fas fa-play"></i> Test Protected API
+                </button>
+                <div id="api-result" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if extra_data %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-database text-secondary"></i> Social Auth Extra Data
+                </h5>
+                <pre class="bg-light p-3 rounded"><code>{{ extra_data|pprint }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+async function testProtectedAPI() {
+    const resultDiv = document.getElementById('api-result');
+    resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Testing...';
+    
+    try {
+        const response = await fetch('{% url "tanqio:protected_api" %}');
+        const data = await response.json();
+        
+        if (response.ok) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success mt-2">
+                    <small><strong>Success!</strong><br>
+                    <code>${JSON.stringify(data, null, 2)}</code></small>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger mt-2">
+                    <small><strong>Error:</strong> ${data.error || 'Unknown error'}</small>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger mt-2">
+                <small><strong>Error:</strong> ${error.message}</small>
+            </div>
+        `;
+    }
+}
+</script>
+{% endblock %}

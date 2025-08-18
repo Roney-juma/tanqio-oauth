@@ -1,0 +1,95 @@
+{% extends 'tanqio/base.html' %}
+
+{% block title %}Logout - OAuth Demo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-custom">
+            <div class="card-body p-5 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-sign-out-alt text-warning fa-3x"></i>
+                </div>
+                
+                <h3 class="card-title mb-4">Complete Logout</h3>
+                
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    You have been logged out from this application, but you may still be logged in to {{ provider|default:"your OAuth provider" }}.
+                </div>
+                
+                <p class="mb-4">
+                    To ensure complete security, please also log out from your OAuth provider by clicking the button below:
+                </p>
+                
+                {% if provider_logout_url %}
+                    <div class="d-grid gap-2">
+                        <a href="{{ provider_logout_url }}" class="btn btn-warning btn-lg" target="_blank">
+                            <i class="fas fa-external-link-alt"></i>
+                            {% if provider == 'google-oauth2' %}
+                                Logout from Google
+                            {% elif provider == 'github' %}
+                                Logout from GitHub
+                            {% elif provider == 'microsoft-graph' %}
+                                Logout from Microsoft
+                            {% elif provider == 'azuread-oauth2' %}
+                                Logout from Azure AD
+                            {% else %}
+                                Logout from {{ provider|title }}
+                            {% endif %}
+                        </a>
+                        
+                        <a href="{% url 'tanqio:complete_logout' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-check"></i>
+                            Skip and Continue
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{% url 'tanqio:home' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home"></i>
+                        Return to Home
+                    </a>
+                {% endif %}
+                
+                <hr class="my-4">
+                
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt"></i>
+                    For security, we recommend logging out from all services when using shared computers.
+                </small>
+            </div>
+        </div>
+        
+        <div class="card card-custom mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="fas fa-lightbulb text-info"></i> Why logout from OAuth provider?
+                </h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Prevents unauthorized access to your accounts
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Ensures complete session termination
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Recommended for shared or public computers
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-redirect after 30 seconds if user doesn't take action
+setTimeout(function() {
+    if (confirm('Auto-logout: Do you want to be redirected to the home page?')) {
+        window.location.href = "{% url 'tanqio:complete_logout' %}";
+    }
+}, 30000);
+</script>
+{% endblock %}

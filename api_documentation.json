@@ -1,0 +1,252 @@
+{
+  "info": {
+    "title": "OAuth Titan API Documentation",
+    "version": "1.0.0",
+    "description": "Comprehensive OAuth 2.0 authentication system with social login and traditional email/password authentication"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ],
+  "security": [
+    {
+      "OAuth2": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "OAuth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "http://localhost:8000/o/authorize/",
+            "tokenUrl": "http://localhost:8000/o/token/",
+            "scopes": {
+              "read": "Read access to user data",
+              "write": "Write access to modify user data"
+            }
+          },
+          "clientCredentials": {
+            "tokenUrl": "http://localhost:8000/o/token/",
+            "scopes": {
+              "read": "Read access",
+              "write": "Write access"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/health/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check API health status",
+        "responses": {
+          "200": {
+            "description": "Successful health check",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "healthy",
+                  "service": "OAuth Titan API",
+                  "version": "1.0.0",
+                  "timestamp": "2025-08-01T12:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/status/": {
+      "get": {
+        "summary": "Authentication Status",
+        "description": "Check user authentication status",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Authenticated or Unauthenticated Response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Authenticated": {
+                    "value": {
+                      "authenticated": true,
+                      "user_id": 1,
+                      "username": "johndoe",
+                      "full_name": "John Doe"
+                    }
+                  },
+                  "Unauthenticated": {
+                    "value": {
+                      "authenticated": false,
+                      "message": "User is not authenticated"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/": {
+      "get": {
+        "summary": "User Information",
+        "description": "Get basic user information",
+        "security": [
+          {
+            "OAuth2": ["read"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User info response",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "username": "johndoe",
+                  "email": "john@example.com",
+                  "first_name": "John",
+                  "last_name": "Doe",
+                  "is_staff": false,
+                  "date_joined": "2025-08-01T10:00:00Z"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profile/update/": {
+      "post": {
+        "summary": "Update Profile",
+        "description": "Update user profile information",
+        "security": [
+          {
+            "OAuth2": ["write"]
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "first_name": "Jane",
+                "last_name": "Smith",
+                "email": "jane@example.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Profile updated successfully",
+                  "user": {
+                    "id": 1,
+                    "username": "johndoe",
+                    "email": "jane@example.com",
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "full_name": "Jane Smith"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/o/authorize/": {
+      "get": {
+        "summary": "OAuth2 Authorization Endpoint",
+        "description": "OAuth 2.0 authorization endpoint",
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "code"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "read write"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/o/token/": {
+      "post": {
+        "summary": "Token Endpoint",
+        "description": "Exchange authorization code or client credentials for access token",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "example": {
+                "grant_type": "authorization_code",
+                "code": "AUTH_CODE",
+                "redirect_uri": "http://localhost:8000/callback/",
+                "client_id": "YOUR_CLIENT_ID",
+                "client_secret": "YOUR_CLIENT_SECRET"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access Token Response",
+            "content": {
+              "application/json": {
+                "example": {
+                  "access_token": "your_access_token",
+                  "token_type": "Bearer",
+                  "expires_in": 3600,
+                  "refresh_token": "your_refresh_token",
+                  "scope": "read write"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+############################
+# Python bytecode & caches
+############################
+__pycache__/
+*.py[cod]
+*$py.class
+
+############################
+# Virtual environments & env files
+############################
+env/
+venv/
+.venv/
+.env
+.env.*
+!.env.example
+
+############################
+# Django / project artifacts
+############################
+db.sqlite3
+media/
+staticfiles/
+
+############################
+# Logs & runtime
+############################
+*.log
+logs/
+*.pid
+*.seed
+
+############################
+# Tests & coverage
+############################
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+pytestdebug.log
+
+############################
+# Build / distribution
+############################
+build/
+dist/
+*.egg-info/
+*.egg
+
+############################
+# Node / front-end (future)
+############################
+node_modules/
+*.tsbuildinfo
+
+############################
+# IDE / editor
+############################
+.idea/
+.vscode/
+*.swp
+*.swo
+*.orig
+.DS_Store
+
+############################
+# Docker / containers (keep Dockerfile & compose tracked)
+############################
+docker-compose.override.yml
+*.tmp
+
+############################
+# Migrations pyc (keep migration .py files)
+############################
+**/migrations/__pycache__/
+
+############################
+# Security & secrets (example files can be committed separately)
+############################
+secrets.json
+*.pem
+*.key
+
+############################
+# Cache & misc
+############################
+.cache/
+tmp/
+*.bak
+*.retry
+

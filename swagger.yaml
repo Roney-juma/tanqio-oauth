@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: OAuth Titan API
+  description: Comprehensive OAuth 2.0 authentication system with social login and traditional email/password authentication.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8000/o/authorize/
+          tokenUrl: http://localhost:8000/o/token/
+          scopes:
+            read: Read access to user data
+            write: Write access to modify user data
+        clientCredentials:
+          tokenUrl: http://localhost:8000/o/token/
+          scopes:
+            read: Read access
+            write: Write access
+paths:
+  /api/health/:
+    get:
+      summary: Health Check
+      description: Check API health status
+      responses:
+        '200':
+          description: Successful health check
+          content:
+            application/json:
+              example:
+                status: healthy
+                service: OAuth Titan API
+                version: 1.0.0
+                timestamp: 2025-08-01T12:00:00Z
+  /api/auth/status/:
+    get:
+      summary: Authentication Status
+      description: Check user authentication status
+      responses:
+        '200':
+          description: Authentication status response
+          content:
+            application/json:
+              examples:
+                Authenticated:
+                  value:
+                    authenticated: true
+                    user_id: 1
+                    username: johndoe
+                    full_name: John Doe
+                Unauthenticated:
+                  value:
+                    authenticated: false
+                    message: User is not authenticated
+  /api/user/:
+    get:
+      summary: User Information
+      description: Get basic user information
+      security:
+        - OAuth2: [read]
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              example:
+                id: 1
+                username: johndoe
+                email: john@example.com
+                first_name: John
+                last_name: Doe
+                is_staff: false
+                date_joined: 2025-08-01T10:00:00Z
+  /api/profile/update/:
+    post:
+      summary: Update Profile
+      description: Update user profile information
+      security:
+        - OAuth2: [write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name:
+                  type: string
+                  example: Jane
+                last_name:
+                  type: string
+                  example: Smith
+                email:
+                  type: string
+                  example: jane@example.com
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              example:
+                message: Profile updated successfully
+                user:
+                  id: 1
+                  username: johndoe
+                  email: jane@example.com
+                  first_name: Jane
+                  last_name: Smith
+                  full_name: Jane Smith
+  /o/authorize/:
+    get:
+      summary: OAuth2 Authorization Endpoint
+      description: OAuth 2.0 authorization endpoint
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            example: code
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            example: read write
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirects to the client redirect URI with authorization code
+  /o/token/:
+    post:
+      summary: Token Endpoint
+      description: Exchange authorization code or client credentials for access token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  example: authorization_code
+                code:
+                  type: string
+                redirect_uri:
+                  type: string
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+      responses:
+        '200':
+          description: Access token issued successfully
+          content:
+            application/json:
+              example:
+                access_token: your_access_token
+                token_type: Bearer
+                expires_in: 3600
+                refresh_token: your_refresh_token
+                scope: read write
+  /o/introspect/:
+    post:
+      summary: Token Introspection
+      description: Introspect an OAuth 2.0 token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+      responses:
+        '200':
+          description: Token introspection result
+          content:
+            application/json:
+              example:
+                active: true
+                scope: read write
+                client_id: your_client_id
+                username: johndoe
+                exp: 1234567890
+  /o/revoke_token/:
+    post:
+      summary: Revoke Token
+      description: Revoke an OAuth 2.0 access or refresh token
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+      responses:
+        '200':
+          description: Token revoked successfully

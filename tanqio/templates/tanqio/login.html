@@ -1,0 +1,73 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Login - Energitrack{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 d-flex justify-content-center">
+    <div class="card card-custom"
+      style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(25px); padding: 0; border-radius: 20px; box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25); width: 100%; max-width: 420px; border: 1px solid rgba(255, 255, 255, 0.18);">
+      <div class="card-body p-5">
+        <h2 class="card-title text-center mb-4">
+          Login to Your Account
+        </h2>
+
+        <div class="row">
+          <!-- Username/Password OAuth2 Login -->
+          <div class="col-12">
+            <form method="post" action="">
+              {% csrf_token %} {{ form.as_p }}
+              <input type="hidden" name="next" value="{{ next }}" />
+              <button type="submit" class="btn btn-success w-100">
+                <i class="fas fa-sign-in-alt"></i> Login
+              </button>
+            </form>
+            {% if form.errors %}
+            <div class="alert alert-danger mt-3">
+              <strong>Login failed:</strong> Please check your username and
+              password.
+            </div>
+            {% endif %}
+            <div class="alert alert-info small mt-3">
+              <i class="fas fa-info-circle"></i>
+              After login, you will be redirected to authorize and complete
+              authentication.
+            </div>
+          </div>
+
+          <div class="col-12 mt-4">
+            <h6 class="text-center text-white-50 mb-3">
+              Or continue with
+            </h6>
+            <div class="d-grid gap-2">
+              <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-outline-light">
+                <i class="fab fa-google"></i> Google
+              </a>
+              <a href="{% url 'social:begin' 'microsoft-oauth2' %}" class="btn btn-outline-light">
+                <i class="fab fa-microsoft"></i> Microsoft
+              </a>
+              <a href="{% url 'social:begin' 'azuread-oauth2' %}" class="btn btn-outline-light">
+                <i class="fab fa-microsoft"></i> Azure AD
+              </a>
+              <a href="{% url 'social:begin' 'github' %}" class="btn btn-outline-light">
+                <i class="fab fa-github"></i> GitHub
+              </a>
+              <a href="{% url 'social:begin' 'facebook' %}" class="btn btn-outline-light">
+                <i class="fab fa-facebook-f"></i> Facebook
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="text-center">
+          <small class="text-muted">
+            <i class="fas fa-shield-alt"></i>
+            Your information is secure and will not be shared without your
+            consent.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

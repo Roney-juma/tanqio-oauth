@@ -1,0 +1,203 @@
+{% extends 'tanqio/base.html' %}
+
+{% block title %}OAuth Applications{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <i class="fas fa-key text-primary"></i>
+                    OAuth Applications
+                </h3>
+                
+                {% if user.is_staff %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        As an admin, you can see all OAuth applications.
+                        <a href="/admin/oauth2_provider/application/" class="btn btn-sm btn-outline-primary ms-2">
+                            <i class="fas fa-cog"></i> Manage in Admin
+                        </a>
+                    </div>
+                {% endif %}
+                
+                {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Client ID</th>
+                                    <th>Client Type</th>
+                                    <th>Grant Type</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in applications %}
+                                <tr>
+                                    <td><strong>{{ app.name }}</strong></td>
+                                    <td>
+                                        <code class="small">{{ app.client_id }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('{{ app.client_id }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ app.client_type|yesno:'success,warning' }}">
+                                            {{ app.get_client_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ app.get_authorization_grant_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ app.created|date:"M d, Y" }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" onclick="showAppDetails('{{ app.client_id }}', '{{ app.client_secret }}', '{{ app.name }}')">
+                                            <i class="fas fa-eye"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        No OAuth applications found. 
+                        {% if user.is_staff %}
+                            <a href="/admin/oauth2_provider/application/add/" class="btn btn-sm btn-primary ms-2">
+                                <i class="fas fa-plus"></i> Create New App
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card card-custom mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-book text-info"></i> OAuth Endpoints
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Authorization Endpoint</h6>
+                        <code>{{ request.build_absolute_uri }}/o/authorize/</code>
+                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('{{ request.build_absolute_uri }}/o/authorize/')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Token Endpoint</h6>
+                        <code>{{ request.build_absolute_uri }}/o/token/</code>
+                        <button class="btn btn-sm btn-outline-secondary ms-1" onclick="copyToClipboard('{{ request.build_absolute_uri }}/o/token/')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for App Details -->
+<div class="modal fade" id="appDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">OAuth Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appDetailsContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Create a temporary alert
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success position-fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.innerHTML = '<i class="fas fa-check"></i> Copied to clipboard!';
+        document.body.appendChild(alert);
+        
+        setTimeout(function() {
+            document.body.removeChild(alert);
+        }, 2000);
+    });
+}
+
+function showAppDetails(clientId, clientSecret, appName) {
+    const content = `
+        <h6><i class="fas fa-mobile-alt"></i> ${appName}</h6>
+        <hr>
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label"><strong>Client ID:</strong></label>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="${clientId}" readonly>
+                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('${clientId}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label"><strong>Client Secret:</strong></label>
+                <div class="input-group">
+                    <input type="password" class="form-control" value="${clientSecret}" readonly id="clientSecret">
+                    <button class="btn btn-outline-secondary" onclick="toggleSecretVisibility()">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('${clientSecret}')">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <h6><i class="fas fa-link"></i> OAuth URLs</h6>
+        <div class="mb-2">
+            <label class="form-label"><strong>Authorization URL:</strong></label>
+            <input type="text" class="form-control" value="${window.location.origin}/o/authorize/" readonly>
+        </div>
+        <div class="mb-2">
+            <label class="form-label"><strong>Token URL:</strong></label>
+            <input type="text" class="form-control" value="${window.location.origin}/o/token/" readonly>
+        </div>
+    `;
+    
+    document.getElementById('appDetailsContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('appDetailsModal')).show();
+}
+
+function toggleSecretVisibility() {
+    const secretField = document.getElementById('clientSecret');
+    const eyeIcon = document.getElementById('eyeIcon');
+    
+    if (secretField.type === 'password') {
+        secretField.type = 'text';
+        eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+        secretField.type = 'password';
+        eyeIcon.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}
