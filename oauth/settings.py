@@ -44,11 +44,16 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY', default='')
 if not SECRET_KEY:
     running_collectstatic = any('collectstatic' in arg for arg in sys.argv)
-    if DEBUG or running_collectstatic:
+    allow_dynamic = config('ALLOW_DYNAMIC_SECRET_KEY', default='0') == '1'
+    if DEBUG or running_collectstatic or allow_dynamic:
         try:
             from django.core.management.utils import get_random_secret_key
             SECRET_KEY = get_random_secret_key()
-            context = 'DEBUG' if DEBUG else 'collectstatic build phase'
+            context = (
+                'DEBUG' if DEBUG else (
+                    'collectstatic build phase' if running_collectstatic else 'ALLOW_DYNAMIC_SECRET_KEY=1'
+                )
+            )
             logging.warning('Generated ephemeral SECRET_KEY during %s; set SECRET_KEY env for production runtime.' % context)
         except Exception as e:
             raise RuntimeError('Failed to generate SECRET_KEY automatically: %s' % e)
