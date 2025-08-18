@@ -1,5 +1,8 @@
 FROM python:3.13-slim-bookworm AS build
 
+# Build arg to force cache bust when dependencies change
+ARG BUILD_TIMESTAMP
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
 	PIP_NO_CACHE_DIR=1
@@ -36,12 +39,13 @@ COPY --from=build /usr/local/bin /usr/local/bin
 COPY --from=build /app /app
 
 ENV DJANGO_SETTINGS_MODULE=oauth.settings \
-	PORT=8000
+	PORT=8080
 
-EXPOSE 8000
+EXPOSE 8080
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["sh", "-c", "gunicorn oauth.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-3} --timeout 120"]
+RUN which gunicorn || echo "(diagnostic) gunicorn not found in runtime layer yet"
+CMD ["sh", "-c", "gunicorn oauth.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers ${GUNICORN_WORKERS:-3} --timeout 120"]
