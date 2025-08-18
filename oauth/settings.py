@@ -32,13 +32,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='')
-if not SECRET_KEY:
-    raise RuntimeError('SECRET_KEY environment variable is required for deployment (was empty).')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# Allow auto-generation ONLY when DEBUG=True so container can start locally / on first deploy.
+SECRET_KEY = config('SECRET_KEY', default='')
+if not SECRET_KEY:
+    if DEBUG:
+        try:
+            from django.core.management.utils import get_random_secret_key
+            SECRET_KEY = get_random_secret_key()
+            # Log a warning so operators know a transient key was generated (sessions will reset on restart).
+            logging.warning('Generated ephemeral SECRET_KEY because DEBUG=True and none was provided.')
+        except Exception as e:
+            raise RuntimeError('Failed to generate SECRET_KEY automatically: %s' % e)
+    else:
+        raise RuntimeError('SECRET_KEY environment variable is required for deployment (was empty).')
 
 # Comma separated hostnames for production (e.g. example.com,api.example.com)
 ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if h.strip()] + ['localhost', '127.0.0.1']
