@@ -24,6 +24,8 @@ def home(request):
     return render(request, 'tanqio/home.html', context)
 
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_http_methods
+from django.middleware.csrf import rotate_token
 
 @csrf_exempt
 def login_view(request):
@@ -100,6 +102,47 @@ def profile_view(request):
         'extra_data': social_auth.extra_data if social_auth else None,
     }
     return render(request, 'tanqio/profile.html', context)
+
+@csrf_exempt
+@protected_resource(scopes=['read'])  # Require a valid access token
+@require_http_methods(["POST"])
+def api_logout(request):
+    """API logout: revoke OAuth2 access & refresh tokens and end user session.
+
+    Behavior:
+      - Extract bearer token from Authorization header (DOT already validated via decorator)
+      - Delete associated RefreshToken(s) & AccessToken
+      - Flush Django session (if any) and rotate CSRF token
+      - Idempotent: responds success even if tokens already gone
+    """
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    token_str = ''
+    if auth.lower().startswith('bearer '):
+        token_str = auth.split(None, 1)[1].strip()
+
+    # Revoke tokens
+    revoked = False
+    if token_str:
+        try:
+            access = AccessToken.objects.select_related('user').filter(token=token_str).first()
+            if access:
+                # Delete refresh tokens pointing to this access token first
+                RefreshToken.objects.filter(access_token=access).delete()
+                access.delete()
+                revoked = True
+        except Exception:
+            pass  # Swallow errors to keep logout idempotent
+
+    # End session if present
+    if request.user.is_authenticated:
+        logout(request)
+    request.session.flush()
+    rotate_token(request)
+
+    return JsonResponse({
+        'detail': 'Logged out',
+        'token_revoked': revoked
+    }, status=200)
 
 @protected_resource(scopes=['read'])
 def protected_api_view(request):

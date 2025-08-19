@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/profile/', views.api_profile, name='api_profile'),
     path('api/profile', views.api_profile),  # allow no trailing slash
     path('api/health/', views.api_health_check, name='api_health'),
+    path('api/logout/', views.api_logout, name='api_logout'),
     # OAuth applications list
     path('oauth/apps/', views.oauth_applications_view, name='oauth_apps'),
     # Keep minimal APIs that exist in current views
