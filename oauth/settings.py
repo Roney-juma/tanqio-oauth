@@ -45,7 +45,10 @@ SECRET_KEY = config('SECRET_KEY', default='')
 # Deterministic dev fallback (DO NOT use in production). Safer than committing a real secret.
 DEV_FALLBACK_SECRET = 'dev-insecure-secret-key-change-me'
 SECRET_KEY = 'django-energy-fallback-key'
-ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if h.strip()] + ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    "seashell-app-93hlf.ondigitalocean.app",
+    "localhost",
+]
 
 # Render.com supplies an external hostname we can auto-allow if present to avoid DisallowedHost errors.
 RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME') or os.environ.get('RENDER_EXTERNAL_URL', '').replace('https://', '').replace('http://', '')
