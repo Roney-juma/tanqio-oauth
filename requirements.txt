@@ -20,6 +20,7 @@ whitenoise==6.7.0
 
 ## Database driver
 psycopg2==2.9.9
+psycopg2-binary==2.9.9  # Fallback for buildpack if system lib mismatch (not recommended for prod long-term)
 
 ## Packaging helpers
 wheel==0.45.1
