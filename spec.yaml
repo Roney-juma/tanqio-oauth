@@ -1,0 +1,87 @@
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+# NOTE: Ensure no tab characters exist in this file (DigitalOcean spec parser forbids tabs). All indentation uses two spaces.
+
+envs:
+  - key: SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: changeme-super-secret
+  - key: DEBUG
+    scope: RUN_AND_BUILD_TIME
+    value: "False"
+  - key: ALLOWED_HOSTS
+    scope: RUN_AND_BUILD_TIME
+    value: yourdomain.com
+  - key: POSTGRES_DB
+    scope: RUN_AND_BUILD_TIME
+    value: oauth
+  - key: POSTGRES_USER
+    scope: RUN_AND_BUILD_TIME
+    value: oauth
+  - key: POSTGRES_PASSWORD
+    scope: RUN_AND_BUILD_TIME
+    value: strongpassword
+  - key: POSTGRES_HOST
+    scope: RUN_AND_BUILD_TIME
+    value: db
+  - key: POSTGRES_PORT
+    scope: RUN_AND_BUILD_TIME
+    value: "5432"
+  - key: GOOGLE_OAUTH2_KEY
+    scope: RUN_AND_BUILD_TIME
+  - key: GOOGLE_OAUTH2_SECRET
+    scope: RUN_AND_BUILD_TIME
+  - key: GITHUB_KEY
+    scope: RUN_AND_BUILD_TIME
+  - key: GITHUB_SECRET
+    scope: RUN_AND_BUILD_TIME
+  - key: FACEBOOK_KEY
+    scope: RUN_AND_BUILD_TIME
+  - key: FACEBOOK_SECRET
+    scope: RUN_AND_BUILD_TIME
+  - key: AZUREAD_KEY
+    scope: RUN_AND_BUILD_TIME
+  - key: AZUREAD_SECRET
+    scope: RUN_AND_BUILD_TIME
+  - key: AZURE_TENANT_ID
+    scope: RUN_AND_BUILD_TIME
+    value: common
+  - key: RESOURCE_SERVER_INTROSPECTION_URL
+    scope: RUN_AND_BUILD_TIME
+  - key: RESOURCE_SERVER_CLIENT_ID
+    scope: RUN_AND_BUILD_TIME
+  - key: RESOURCE_SERVER_CLIENT_SECRET
+    scope: RUN_AND_BUILD_TIME
+  - key: RESOURCE_SERVER_REVOCATION_URL
+    scope: RUN_AND_BUILD_TIME
+
+features:
+  - buildpack-stack=ubuntu-22
+
+ingress:
+  rules:
+    - component:
+        name: tanqio-oauth2
+      match:
+        authority:
+          exact: ""
+        path:
+          prefix: /tanqio-oauth2
+
+name: lionfish-app
+region: blr
+
+services:
+  - build_command: |
+      pip install -r requirements.txt && python manage.py collectstatic --noinput
+    environment_slug: python
+    github:
+      branch: deploy-branch
+      deploy_on_push: true
+      repo: Roney-juma/tanqio-oauth
+    instance_count: 2
+    instance_size_slug: apps-s-1vcpu-1gb
+    name: tanqio-oauth2
+    run_command: gunicorn oauth.wsgi:application --bind 0.0.0.0:$PORT
+    source_dir: /
