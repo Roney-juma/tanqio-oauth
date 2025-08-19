@@ -41,8 +41,8 @@ envs:
           repo: Roney-juma/tanqio-oauth
           branch: deploy-branch
           deploy_on_push: true
-        run_command: gunicorn oauth.wsgi:application --bind 0.0.0.0:$PORT
-        build_command: pip install -r requirements.txt && python manage.py collectstatic --noinput
+        run_command: gunicorn oauth.wsgi:application
+        build_command: pip install -r requirements.txt
         instance_size_slug: apps-s-1vcpu-1gb
         instance_count: 1
         envs:
