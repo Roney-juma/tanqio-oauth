@@ -54,6 +54,11 @@ if RENDER_HOST:
     if host_clean and host_clean not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host_clean)
 
+# Specific DigitalOcean App hostname (requested)
+DO_APP_HOST = 'seashell-app-93hlf.ondigitalocean.app'
+if DO_APP_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(DO_APP_HOST)
+
 
 
 # Application definition
