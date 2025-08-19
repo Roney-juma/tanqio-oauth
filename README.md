@@ -7,7 +7,7 @@ This project is a Django OAuth-enabled service (Django OAuth Toolkit + Social Au
 - `oauth/` – Project settings & wsgi.
 - `tanqio/` – Application code (views, OAuth validator, templates, static images).
 - `requirements.txt` – Pinned dependencies (buildpack installs these).
-- `runtime.txt` – Python version pin (buildpack reads this).
+- `.python-version` – Python version pin (preferred; replaces deprecated runtime.txt).
 - `Procfile` – Run command (`gunicorn oauth.wsgi:application`).
 - `.env.example` – Reference for environment variables to set in the platform.
 
