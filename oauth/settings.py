@@ -48,6 +48,7 @@ SECRET_KEY = 'django-energy-fallback-key'
 ALLOWED_HOSTS = [
     "seashell-app-93hlf.ondigitalocean.app",
     "localhost",
+    "127.0.0.1",
 ]
 
 # Render.com supplies an external hostname we can auto-allow if present to avoid DisallowedHost errors.

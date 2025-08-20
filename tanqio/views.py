@@ -26,6 +26,7 @@ def home(request):
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.middleware.csrf import rotate_token
+from django.contrib.sessions.models import Session
 
 @csrf_exempt
 def login_view(request):
@@ -104,44 +105,80 @@ def profile_view(request):
     return render(request, 'tanqio/profile.html', context)
 
 @csrf_exempt
-@protected_resource(scopes=['read'])  # Require a valid access token
+@protected_resource(scopes=['read'])  
 @require_http_methods(["POST"])
 def api_logout(request):
-    """API logout: revoke OAuth2 access & refresh tokens and end user session.
+    """Comprehensive API logout.
 
-    Behavior:
-      - Extract bearer token from Authorization header (DOT already validated via decorator)
-      - Delete associated RefreshToken(s) & AccessToken
-      - Flush Django session (if any) and rotate CSRF token
-      - Idempotent: responds success even if tokens already gone
+    Goals:
+      1. Revoke ALL OAuth2 access & refresh tokens for the identified user (not just the bearer).
+      2. Destroy EVERY active Django session for that user (global logout across browsers/devices).
+      3. Flush current session (even if unauthenticated in this request) and rotate CSRF.
+      4. Idempotent: succeeds even if nothing to revoke.
+
+    Identification precedence:
+      - If request.user.is_authenticated use that user.
+      - Else derive user from provided bearer token.
     """
-    auth = request.META.get('HTTP_AUTHORIZATION', '')
-    token_str = ''
-    if auth.lower().startswith('bearer '):
-        token_str = auth.split(None, 1)[1].strip()
+    auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+    bearer_token = ''
+    if auth_header.lower().startswith('bearer '):
+        bearer_token = auth_header.split(None, 1)[1].strip()
 
-    # Revoke tokens
-    revoked = False
-    if token_str:
+    target_user = request.user if request.user.is_authenticated else None
+    access_obj = None
+    if not target_user and bearer_token:
+        access_obj = AccessToken.objects.select_related('user').filter(token=bearer_token).first()
+        if access_obj:
+            target_user = access_obj.user
+
+    tokens_revoked = 0
+    sessions_cleared = 0
+    bearer_revoked = False
+
+    if target_user:
+        # Revoke all tokens for this user (access + refresh) for a full logout.
         try:
-            access = AccessToken.objects.select_related('user').filter(token=token_str).first()
-            if access:
-                # Delete refresh tokens pointing to this access token first
-                RefreshToken.objects.filter(access_token=access).delete()
-                access.delete()
-                revoked = True
+            user_access_qs = AccessToken.objects.filter(user=target_user)
+            # Collect related access token ids first
+            access_ids = list(user_access_qs.values_list('id', flat=True))
+            if access_ids:
+                RefreshToken.objects.filter(access_token_id__in=access_ids).delete()
+            tokens_revoked = user_access_qs.count()
+            user_access_qs.delete()
         except Exception:
-            pass  # Swallow errors to keep logout idempotent
+            pass
 
-    # End session if present
-    if request.user.is_authenticated:
-        logout(request)
-    request.session.flush()
+        if bearer_token and access_obj:
+            bearer_revoked = True
+
+        # Terminate ALL sessions for this user
+        try:
+            for session in Session.objects.filter(expire_date__gte=timezone.now()):
+                try:
+                    data = session.get_decoded()
+                except Exception:
+                    continue
+                if data.get('_auth_user_id') == str(target_user.id):
+                    session.delete()
+                    sessions_cleared += 1
+        except Exception:
+            pass
+
+    # Always flush current session context
+    try:
+        request.session.flush()
+    except Exception:
+        pass
     rotate_token(request)
+    logout(request)
 
     return JsonResponse({
         'detail': 'Logged out',
-        'token_revoked': revoked
+        'user': target_user.username if target_user else None,
+        'bearer_revoked': bearer_revoked,
+        'tokens_revoked_total': tokens_revoked,
+        'sessions_cleared': sessions_cleared
     }, status=200)
 
 @protected_resource(scopes=['read'])
