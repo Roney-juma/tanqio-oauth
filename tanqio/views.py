@@ -27,6 +27,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 from django.middleware.csrf import rotate_token
 from django.contrib.sessions.models import Session
+from django.conf import settings
+from django.core.cache import cache
+import hashlib
 
 @csrf_exempt
 def login_view(request):
@@ -108,22 +111,28 @@ def profile_view(request):
 @protected_resource(scopes=['read'])  
 @require_http_methods(["POST"])
 def api_logout(request):
-    """Comprehensive API logout.
+    """Comprehensive API logout (single authoritative implementation).
 
-    Goals:
-      1. Revoke ALL OAuth2 access & refresh tokens for the identified user (not just the bearer).
-      2. Destroy EVERY active Django session for that user (global logout across browsers/devices).
-      3. Flush current session (even if unauthenticated in this request) and rotate CSRF.
-      4. Idempotent: succeeds even if nothing to revoke.
+    Ensures BOTH OAuth token revocation and absolute session invalidation at the
+    authorization domain so that any existing browser session cookie becomes unusable.
 
-    Identification precedence:
-      - If request.user.is_authenticated use that user.
-      - Else derive user from provided bearer token.
+    Steps:
+      1. Determine target user (session user or bearer token user).
+      2. Revoke ALL access & refresh tokens for that user.
+      3. Optionally call remote revocation endpoint (RFC 7009) if configured.
+      4. Blacklist the bearer token locally (cache) to guard against race reuse.
+      5. Delete EVERY active Django session owned by that user (cross-device logout).
+      6. Flush current session & rotate CSRF.
+      7. Explicitly delete the session cookie in the response.
+
+    Idempotent & resilient to partial failures.
     """
     auth_header = request.META.get('HTTP_AUTHORIZATION', '')
     bearer_token = ''
     if auth_header.lower().startswith('bearer '):
-        bearer_token = auth_header.split(None, 1)[1].strip()
+        parts = auth_header.split(None, 1)
+        if len(parts) == 2:
+            bearer_token = parts[1].strip()
 
     target_user = request.user if request.user.is_authenticated else None
     access_obj = None
@@ -133,26 +142,25 @@ def api_logout(request):
             target_user = access_obj.user
 
     tokens_revoked = 0
+    refresh_tokens_revoked = 0
     sessions_cleared = 0
-    bearer_revoked = False
 
     if target_user:
-        # Revoke all tokens for this user (access + refresh) for a full logout.
         try:
             user_access_qs = AccessToken.objects.filter(user=target_user)
-            # Collect related access token ids first
             access_ids = list(user_access_qs.values_list('id', flat=True))
             if access_ids:
-                RefreshToken.objects.filter(access_token_id__in=access_ids).delete()
+                refresh_qs = RefreshToken.objects.filter(access_token_id__in=access_ids)
+                refresh_tokens_revoked = refresh_qs.count()
+                refresh_qs.delete()
             tokens_revoked = user_access_qs.count()
             user_access_qs.delete()
+            # Also delete any lingering authorization grants
+            Grant.objects.filter(user=target_user).delete()
         except Exception:
             pass
 
-        if bearer_token and access_obj:
-            bearer_revoked = True
-
-        # Terminate ALL sessions for this user
+        # Global session invalidation for this user
         try:
             for session in Session.objects.filter(expire_date__gte=timezone.now()):
                 try:
@@ -165,21 +173,57 @@ def api_logout(request):
         except Exception:
             pass
 
-    # Always flush current session context
+    # Remote revocation if configured
+    revocation_url = getattr(settings, 'RESOURCE_SERVER_REVOCATION_URL', None)
+    client_id = getattr(settings, 'RESOURCE_SERVER_CLIENT_ID', None)
+    client_secret = getattr(settings, 'RESOURCE_SERVER_CLIENT_SECRET', None)
+    if revocation_url and client_id and client_secret and bearer_token:
+        try:
+            import requests
+            requests.post(
+                revocation_url,
+                data={'token': bearer_token, 'token_type_hint': 'access_token'},
+                auth=(client_id, client_secret),
+                timeout=5,
+            )
+        except Exception:
+            pass
+
+    # Local blacklist cache for bearer token (best-effort)
+    if bearer_token:
+        try:
+            token_hash = hashlib.sha256(bearer_token.encode('utf-8')).hexdigest()
+            cache.set(f"exttoken:blacklist:{token_hash}", True, timeout=oauth2_settings.ACCESS_TOKEN_EXPIRE_SECONDS)
+        except Exception:
+            pass
+
+    # Flush current session & logout (will create a new empty session id; we'll delete cookie later)
     try:
         request.session.flush()
     except Exception:
         pass
-    rotate_token(request)
     logout(request)
+    rotate_token(request)
 
-    return JsonResponse({
+    response = JsonResponse({
         'detail': 'Logged out',
         'user': target_user.username if target_user else None,
-        'bearer_revoked': bearer_revoked,
-        'tokens_revoked_total': tokens_revoked,
+        'tokens_revoked': tokens_revoked,
+        'refresh_tokens_revoked': refresh_tokens_revoked,
         'sessions_cleared': sessions_cleared
     }, status=200)
+
+    # Explicitly remove session cookie
+    try:
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, path='/', domain=settings.SESSION_COOKIE_DOMAIN)
+    except Exception:
+        # Fallback: attempt without domain
+        try:
+            response.delete_cookie(settings.SESSION_COOKIE_NAME)
+        except Exception:
+            pass
+
+    return response
 
 @protected_resource(scopes=['read'])
 def protected_api_view(request):
@@ -432,76 +476,6 @@ def api_health_check(request):
 
 
 from oauth2_provider.models import AccessToken, RefreshToken
-
-@csrf_exempt
-@protected_resource(scopes=['read', 'write'])
-def api_logout(request):
-    """
-    API endpoint to revoke the user's access and refresh tokens (logout).
-    """
-    try:
-        # Prefer revoking all tokens for the authenticated user to ensure complete logout
-        if request.user.is_authenticated:
-            AccessToken.objects.filter(user=request.user).delete()
-            RefreshToken.objects.filter(user=request.user).delete()
-            Grant.objects.filter(user=request.user).delete()
-
-        # Additionally, if a specific bearer token is provided, ensure it is removed
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        token_value = auth_header.split(' ')[1] if ' ' in auth_header else None
-        if token_value:
-            AccessToken.objects.filter(token=token_value).delete()
-            RefreshToken.objects.filter(access_token__token=token_value).delete()
-
-    # Optional: remote revocation (RFC 7009) when accepting external tokens via introspection
-        # If configured, attempt to revoke the access token and any refresh token provided in body
-        from django.conf import settings
-        revocation_url = getattr(settings, 'RESOURCE_SERVER_REVOCATION_URL', None)
-        client_id = getattr(settings, 'RESOURCE_SERVER_CLIENT_ID', None)
-        client_secret = getattr(settings, 'RESOURCE_SERVER_CLIENT_SECRET', None)
-        if revocation_url and client_id and client_secret:
-            import requests
-            # Revoke access token
-            if token_value:
-                try:
-                    requests.post(
-                        revocation_url,
-                        data={'token': token_value, 'token_type_hint': 'access_token'},
-                        auth=(client_id, client_secret),
-                        timeout=5,
-                    )
-                except Exception:
-                    pass
-            # Revoke refresh token if supplied in JSON body
-            try:
-                body = json.loads(request.body or '{}')
-                refresh_token_value = body.get('refresh_token')
-                if refresh_token_value:
-                    try:
-                        requests.post(
-                            revocation_url,
-                            data={'token': refresh_token_value, 'token_type_hint': 'refresh_token'},
-                            auth=(client_id, client_secret),
-                            timeout=5,
-                        )
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-
-        # Add token to a local blacklist cache so any lag at issuer won't allow reuse
-        try:
-            if token_value:
-                from django.core.cache import cache
-                import hashlib
-                token_hash = hashlib.sha256(token_value.encode('utf-8')).hexdigest()
-                cache.set(f"exttoken:blacklist:{token_hash}", True, timeout=oauth2_settings.ACCESS_TOKEN_EXPIRE_SECONDS)
-        except Exception:
-            pass
-
-        return JsonResponse({'message': 'Successfully logged out from OAuth2 server'})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
 
 # --- API endpoint to refresh access token using refresh token ---
