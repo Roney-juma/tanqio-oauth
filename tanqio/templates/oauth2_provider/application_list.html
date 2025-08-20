@@ -1,0 +1,31 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Your OAuth Applications{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10">
+  <h1 class="text-2xl font-semibold mb-4">OAuth Applications</h1>
+  <table class="w-full text-sm border-collapse">
+    <thead>
+      <tr class="bg-gray-100 text-left">
+        <th class="p-2">Name</th>
+        <th class="p-2">Client ID</th>
+        <th class="p-2">Type</th>
+        <th class="p-2">Grant</th>
+        <th class="p-2">Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in application_list %}
+      <tr class="border-b">
+        <td class="p-2">{{ app.name }}</td>
+        <td class="p-2 font-mono text-xs">{{ app.client_id }}</td>
+        <td class="p-2">{{ app.get_client_type_display }}</td>
+        <td class="p-2">{{ app.get_authorization_grant_type_display }}</td>
+        <td class="p-2">{{ app.created|date:'Y-m-d' }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="p-4 text-center text-gray-500">No applications yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

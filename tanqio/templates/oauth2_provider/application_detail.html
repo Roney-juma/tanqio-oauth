@@ -1,0 +1,18 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Application Detail{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto mt-10 bg-white/70 backdrop-blur rounded p-6 shadow">
+  <h1 class="text-2xl font-semibold mb-4">{{ application.name }}</h1>
+  <dl class="text-sm space-y-2">
+    <dt class="font-medium">Client ID</dt><dd class="font-mono break-all">{{ application.client_id }}</dd>
+    <dt class="font-medium">Client Secret</dt><dd class="font-mono break-all">{{ application.client_secret }}</dd>
+    <dt class="font-medium">Redirect URIs</dt><dd><pre class="bg-gray-100 p-2 rounded text-xs overflow-x-auto">{{ application.redirect_uris }}</pre></dd>
+    <dt class="font-medium">Client Type</dt><dd>{{ application.get_client_type_display }}</dd>
+    <dt class="font-medium">Authorization Grant</dt><dd>{{ application.get_authorization_grant_type_display }}</dd>
+    <dt class="font-medium">Created</dt><dd>{{ application.created|date:'Y-m-d H:i' }}</dd>
+  </dl>
+  <div class="mt-6 flex gap-3">
+    <a href="{% url 'oauth2_provider:list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-900 px-4 py-2 rounded">Back</a>
+  </div>
+</div>
+{% endblock %}

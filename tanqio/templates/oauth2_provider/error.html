@@ -1,0 +1,14 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Authorization Error{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto bg-white/70 backdrop-blur rounded-lg p-6 shadow mt-10">
+  <h1 class="text-xl font-semibold mb-4">Authorization Error</h1>
+  <p class="mb-4">{{ error.description|default:error }}</p>
+  {% if error_uri %}
+    <p class="text-sm">More info: <a class="text-blue-600 underline" href="{{ error_uri }}">{{ error_uri }}</a></p>
+  {% endif %}
+  <div class="mt-6">
+    <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Return Home</a>
+  </div>
+</div>
+{% endblock %}

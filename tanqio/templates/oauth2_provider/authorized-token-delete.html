@@ -1,0 +1,15 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Revoke Token{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-10 bg-white/70 backdrop-blur rounded p-6 shadow">
+  <h1 class="text-xl font-semibold mb-4">Revoke Access Token</h1>
+  <p class="mb-4">Are you sure you want to revoke this token issued to <strong>{{ authorized_token.application.name }}</strong>?</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex gap-3">
+      <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Revoke</button>
+      <a href="{% url 'oauth2_provider:authorized-token-list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-900 px-4 py-2 rounded">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

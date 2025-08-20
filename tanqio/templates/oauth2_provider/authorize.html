@@ -1,0 +1,63 @@
+{% extends 'tanqio/base.html' %}
+{% load static %}
+
+{% block title %}Authorize - Energitrack{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center w-100">
+  <div class="col-12 d-flex justify-content-center">
+    <div class="card card-custom" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(25px); padding:0; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,.25); width:100%; max-width:520px; border:1px solid rgba(255,255,255,.18);">
+      <div class="card-body p-5">
+        <h2 class="card-title text-center mb-4">
+          Authorize Application
+        </h2>
+        {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <p class="text-white-50 small mb-4">
+          The application <strong class="text-white">{{ application.name }}</strong> is requesting access to your account.
+        </p>
+        {% if scopes %}
+          <div class="mb-4">
+            <h6 class="text-uppercase text-white-50 mb-2" style="letter-spacing:.05em;">Requested Permissions</h6>
+            <ul class="list-unstyled mb-0">
+              {% for scope in scopes %}
+                <li class="mb-1"><span class="badge bg-secondary">{{ scope }}</span> <small class="text-white-50">{{ scope|title }}</small></li>
+              {% endfor %}
+            </ul>
+            <div class="alert alert-info mt-3 py-2 px-3 small">
+              <i class="fas fa-info-circle"></i> You can revoke these permissions later from your profile page.
+            </div>
+          </div>
+        {% endif %}
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
+          <input type="hidden" name="state" value="{{ state }}" />
+          <input type="hidden" name="client_id" value="{{ application.client_id }}" />
+          <input type="hidden" name="response_type" value="{{ response_type }}" />
+          {% for scope in scopes %}
+            <input type="hidden" name="scope" value="{{ scope }}" />
+          {% endfor %}
+          {% if nonce %}<input type="hidden" name="nonce" value="{{ nonce }}" />{% endif %}
+          {% if code_challenge %}<input type="hidden" name="code_challenge" value="{{ code_challenge }}" />{% endif %}
+          {% if code_challenge_method %}<input type="hidden" name="code_challenge_method" value="{{ code_challenge_method }}" />{% endif %}
+          <div class="d-grid gap-3 mt-4">
+            <button name="allow" value="Authorize" class="btn btn-success">
+              <i class="fas fa-check"></i> Authorize
+            </button>
+            <button name="deny" value="Cancel" class="btn btn-outline-light" formnovalidate>
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </form>
+        <hr class="my-4" />
+        <div class="text-center small text-white-50">
+          Signed in as <strong class="text-white">{{ user.get_full_name|default:user.username }}</strong>.
+          <a href="{% url 'tanqio:logout' %}?next={{ request.path }}" class="text-decoration-underline text-light">Switch account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

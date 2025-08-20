@@ -1,0 +1,23 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Update Application{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto mt-10 bg-white/70 backdrop-blur rounded p-6 shadow">
+  <h1 class="text-2xl font-semibold mb-4">Update OAuth Application</h1>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div>
+        <label class="block text-sm font-medium mb-1" for="id_{{ field.name }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="flex gap-3">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+      <a href="{% url 'oauth2_provider:list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-900 px-4 py-2 rounded">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

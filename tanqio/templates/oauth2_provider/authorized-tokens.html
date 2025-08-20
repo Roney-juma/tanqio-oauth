@@ -1,0 +1,29 @@
+{% extends 'tanqio/base.html' %}
+{% block title %}Authorized Tokens{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10">
+  <h1 class="text-2xl font-semibold mb-4">Authorized Tokens</h1>
+  <table class="w-full text-sm border-collapse">
+    <thead>
+      <tr class="bg-gray-100 text-left">
+        <th class="p-2">Application</th>
+        <th class="p-2">Scope</th>
+        <th class="p-2">Expires</th>
+        <th class="p-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for at in authorized_tokens %}
+      <tr class="border-b">
+        <td class="p-2">{{ at.application.name }}</td>
+        <td class="p-2">{{ at.scope }}</td>
+        <td class="p-2">{{ at.expires|date:'Y-m-d H:i' }}</td>
+        <td class="p-2 text-right"><a href="{% url 'oauth2_provider:authorized-token-delete' at.pk %}" class="text-red-600 hover:underline">Revoke</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="p-4 text-center text-gray-500">No active tokens.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
