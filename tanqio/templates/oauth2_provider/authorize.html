@@ -25,34 +25,31 @@
         <div class="mb-4">
           <h6 class="text-center text-white-50 mb-3">Requested Permissions</h6>
           <div class="d-flex flex-wrap gap-2 justify-content-center">
-            {% for scope in scopes %}
-              <span class="badge bg-secondary" style="font-size:0.7rem; letter-spacing:.5px;">{{ scope }}</span>
+            {% for s in scopes %}
+              <span class="badge bg-secondary" style="font-size:0.7rem; letter-spacing:.5px;">{{ s }}</span>
             {% endfor %}
           </div>
           <div class="alert alert-info mt-3 py-2 px-3 small">
-            <i class="fas fa-info-circle"></i>
-            You can revoke these later from your profile (Authorized Tokens section).
+            <i class="fas fa-info-circle"></i> You can revoke these later from your profile (Authorized Tokens).
           </div>
         </div>
         {% endif %}
 
-        <form method="post" class="mb-3" novalidate>
+        <form method="post" action="" class="mb-3" novalidate>
           {% csrf_token %}
           <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}" />
           <input type="hidden" name="state" value="{{ state }}" />
           <input type="hidden" name="client_id" value="{{ application.client_id }}" />
           <input type="hidden" name="response_type" value="{{ response_type }}" />
-          {% for scope in scopes %}
-            <input type="hidden" name="scope" value="{{ scope }}" />
-          {% endfor %}
+          <input type="hidden" name="scope" value="{% if scopes %}{{ scopes|join:' ' }}{% endif %}" />
           {% if nonce %}<input type="hidden" name="nonce" value="{{ nonce }}" />{% endif %}
           {% if code_challenge %}<input type="hidden" name="code_challenge" value="{{ code_challenge }}" />{% endif %}
           {% if code_challenge_method %}<input type="hidden" name="code_challenge_method" value="{{ code_challenge_method }}" />{% endif %}
           <div class="d-grid gap-3 mt-4">
-            <button name="allow" value="Authorize" class="btn btn-success">
+            <button type="submit" name="allow" value="1" class="btn btn-success">
               <i class="fas fa-check-circle"></i> Authorize
             </button>
-            <button name="deny" value="Cancel" class="btn btn-outline-light" formnovalidate>
+            <button type="submit" name="deny" value="1" class="btn btn-outline-light" formnovalidate>
               <i class="fas fa-times"></i> Cancel
             </button>
           </div>
