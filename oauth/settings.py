@@ -195,7 +195,10 @@ ROOT_URLCONF = 'oauth.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Ensure our app templates (including oauth2_provider overrides) are found first
+        'DIRS': [
+            BASE_DIR / 'tanqio' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
